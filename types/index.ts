@@ -43,7 +43,7 @@ export interface MediaFile {
   user_id: string;
   media_type: MediaType;
   file_url: string;
-  thumbnail_url?: string;
+  file_key?: string;
   is_favorite: boolean;
   createdAt: string;
   updatedAt: string;

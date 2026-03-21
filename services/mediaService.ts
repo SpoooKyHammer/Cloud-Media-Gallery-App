@@ -1,10 +1,17 @@
 import { apiClient } from '../api/client';
 import { API_ENDPOINTS } from '../constants';
 import type { ApiResponse, MediaFile, PaginatedResponse } from '../types';
+import type { ImagePickerAsset } from 'expo-image-picker';
 
 export interface GetMediaParams {
   page: number;
   limit: number;
+}
+
+export interface UploadProgress {
+  progress: number;
+  uploaded: number;
+  total: number;
 }
 
 /**
@@ -38,6 +45,60 @@ export const mediaService = {
 
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.message || 'Failed to fetch favorites');
+    }
+
+    return response.data.data;
+  },
+
+  /**
+   * Upload one or multiple media files with progress tracking.
+   */
+  uploadMedia: async (
+    assets: ImagePickerAsset[],
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<MediaFile[]> => {
+    const formData = new FormData();
+
+    // Calculate total size for all files
+    const totalSize = assets.reduce((sum, asset) => sum + (asset.fileSize || 0), 0);
+
+    // Create file objects from assets
+    assets.forEach((asset) => {
+      const file: any = {
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `upload_${Date.now()}.${asset.uri.split('.').pop()}`,
+      };
+      formData.append('files', file);
+    });
+
+    const response = await apiClient.post<ApiResponse<MediaFile[]>>(
+      API_ENDPOINTS.MEDIA.UPLOAD,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        transformRequest: () => formData,
+        onUploadProgress: (progressEvent) => {
+          if (!onProgress || !totalSize) return;
+
+          const loaded = progressEvent.loaded;
+
+          // Calculate overall progress based on total file size
+          const progress = Math.min((loaded / totalSize) * 100, 100);
+
+          onProgress({
+            progress,
+            uploaded: Math.min(loaded, totalSize),
+            total: totalSize,
+          });
+        },
+      }
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || 'Upload failed');
     }
 
     return response.data.data;

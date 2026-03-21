@@ -37,7 +37,7 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
       <View style={styles.imageContainer}>
         {isLoading && <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />}
         <Image
-          source={{ uri: media.thumbnail_url || media.file_url }}
+          source={{ uri: media.file_url }}
           style={styles.image}
           resizeMode="cover"
           onLoadStart={() => setIsLoading(true)}

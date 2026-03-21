@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { COLORS, SPACING } from '../../../constants';
 import { MediaCard } from '../../../components/media/MediaCard';
 import { MediaCardSkeleton } from '../../../components/common/Skeleton';
 import { useMediaInfinite, useToggleFavorite } from '../../../hooks/useMedia';
+import { UploadModal } from '../../../components/media/UploadModal';
 import type { MediaFile, PaginatedResponse } from '../../../types';
 import type { InfiniteData } from '@tanstack/react-query';
 
@@ -33,6 +34,7 @@ const ITEM_WIDTH = (width - SPACING.lg * 2 - ITEM_MARGIN * (NUM_COLUMNS - 1)) / 
  * - Optimized for 100+ items
  */
 export default function GalleryScreen() {
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useMediaInfinite();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -152,6 +154,15 @@ export default function GalleryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Gallery</Text>
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => setShowUploadModal(true)}
+        >
+          <Ionicons name="add-circle" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={mediaItems}
         renderItem={renderItem}
@@ -178,6 +189,11 @@ export default function GalleryScreen() {
       />
       {renderLoading}
       {renderError}
+      <UploadModal
+        visible={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={handleRefresh}
+      />
     </SafeAreaView>
   );
 }
@@ -186,6 +202,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  uploadButton: {
+    padding: SPACING.xs,
   },
   grid: {
     padding: SPACING.lg,
