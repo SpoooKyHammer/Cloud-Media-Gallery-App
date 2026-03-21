@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSession } from '../hooks/useAuth';
+import { QueryProvider } from '../components/common/QueryProvider';
 import { COLORS } from '../constants';
 
 /**
@@ -27,17 +28,19 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
-      {/* Auth routes - only accessible when NOT authenticated */}
-      <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      </Stack.Protected>
+    <QueryProvider>
+      <Stack>
+        {/* Auth routes - only accessible when NOT authenticated */}
+        <Stack.Protected guard={!isAuthenticated}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        </Stack.Protected>
 
-      {/* App routes - only accessible when authenticated */}
-      <Stack.Protected guard={isAuthenticated}>
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
-      </Stack.Protected>
-    </Stack>
+        {/* App routes - only accessible when authenticated */}
+        <Stack.Protected guard={isAuthenticated}>
+          <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+    </QueryProvider>
   );
 }
 
