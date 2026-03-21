@@ -22,6 +22,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   errors?: Array<{ field: string; message: string }>;
+  error?: { message: string; stack?: string };
 }
 
 export interface PaginatedResponse<T = any> {

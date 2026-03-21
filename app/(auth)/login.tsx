@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '../../constants';
 import { Button, Input, LoadingOverlay } from '../../components/common';
 import { useLogin } from '../../hooks/useAuth';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 /**
  * Login screen for user authentication.
@@ -57,7 +58,7 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password);
       // Navigation is handled by the root layout auth check
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Login failed. Please check your credentials.';
+      const message = getErrorMessage(error);
       setErrors({ general: message });
     }
   }, [login, email, password, validateForm]);
@@ -181,8 +182,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   errorText: {
-    color: COLORS.error,
+    color: COLORS.text,
     fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
   },
   footer: {

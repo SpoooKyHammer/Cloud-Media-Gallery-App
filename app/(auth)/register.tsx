@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '../../constants';
 import { Button, Input, LoadingOverlay } from '../../components/common';
 import { useRegister } from '../../hooks/useAuth';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 /**
  * Registration screen for new user sign up.
@@ -81,7 +82,7 @@ export default function RegisterScreen() {
       await register(name.trim(), email.trim().toLowerCase(), password);
       // Navigation is handled by the root layout auth check
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      const message = getErrorMessage(error);
       setErrors({ general: message });
     }
   }, [register, name, email, password, validateForm]);
@@ -225,8 +226,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   errorText: {
-    color: COLORS.error,
+    color: COLORS.text,
     fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
   },
   footer: {
