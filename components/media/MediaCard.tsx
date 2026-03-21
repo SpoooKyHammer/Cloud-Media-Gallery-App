@@ -1,8 +1,11 @@
-import React, { useCallback, memo } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useCallback, memo, useEffect, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ImageSource } from 'expo-image';
 import { COLORS, SPACING } from '../../constants';
 import type { MediaFile } from '../../types';
+import { getVideoThumbnailSource } from '../../utils/getVideoThumbnail';
+import { Image } from 'expo-image';
 
 export interface MediaCardProps {
   media: MediaFile;
@@ -16,7 +19,41 @@ export interface MediaCardProps {
  * Uses memo to prevent unnecessary re-renders.
  */
 export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: MediaCardProps) => {
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [thumbnailSource, setThumbnailSource] = useState<string | ImageSource | null>(null);
+
+  const isVideo = media.media_type === 'video';
+
+  // Generate thumbnail for videos
+  useEffect(() => {
+    if (!isVideo) {
+      setThumbnailSource(media.file_url);
+      return;
+    }
+
+    let mounted = true;
+
+    const loadThumbnail = async () => {
+      try {
+        const thumbnail = await getVideoThumbnailSource(media.file_url);
+        if (mounted) {
+          setThumbnailSource(thumbnail || media.file_url);
+        }
+      } catch (error) {
+        console.warn('Thumbnail generation failed:', error);
+        if (mounted) {
+          setThumbnailSource(media.file_url);
+        }
+      }
+    };
+
+    loadThumbnail();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isVideo, media.file_url]);
 
   const handlePress = useCallback(() => {
     onPress?.(media);
@@ -30,19 +67,28 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
     [onFavoritePress, media]
   );
 
-  const isVideo = media.media_type === 'video';
-
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.7}>
       <View style={styles.imageContainer}>
-        {isLoading && <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />}
-        <Image
-          source={{ uri: media.file_url }}
-          style={styles.image}
-          resizeMode="cover"
-          onLoadStart={() => setIsLoading(true)}
-          onLoadEnd={() => setIsLoading(false)}
-        />
+        {isLoading && !hasError && (
+          <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />
+        )}
+        {thumbnailSource && (
+          <Image
+            source={typeof thumbnailSource === 'string' ? { uri: thumbnailSource } : thumbnailSource as any}
+            style={styles.image}
+            resizeMode="cover"
+            onLoadStart={() => {
+              setIsLoading(true);
+              setHasError(false);
+            }}
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setIsLoading(false);
+              setHasError(true);
+            }}
+          />
+        )}
         {isVideo && (
           <View style={styles.videoIndicator}>
             <Ionicons name="videocam" size={16} color={COLORS.textInverse} />

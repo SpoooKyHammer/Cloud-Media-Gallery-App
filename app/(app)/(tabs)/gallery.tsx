@@ -15,6 +15,7 @@ import { MediaCard } from '../../../components/media/MediaCard';
 import { MediaCardSkeleton } from '../../../components/common/Skeleton';
 import { useMediaInfinite, useToggleFavorite } from '../../../hooks/useMedia';
 import { UploadModal } from '../../../components/media/UploadModal';
+import { MediaViewer } from '../../../components/media/MediaViewer';
 import type { MediaFile, PaginatedResponse } from '../../../types';
 import type { InfiniteData } from '@tanstack/react-query';
 
@@ -35,6 +36,8 @@ const ITEM_WIDTH = (width - SPACING.lg * 2 - ITEM_MARGIN * (NUM_COLUMNS - 1)) / 
  */
 export default function GalleryScreen() {
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useMediaInfinite();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -53,11 +56,12 @@ export default function GalleryScreen() {
     [toggleFavorite]
   );
 
-  // Handle media press (placeholder for navigation)
+  // Handle media press - open full screen viewer
   const handleMediaPress = useCallback((media: MediaFile) => {
-    // TODO: Navigate to media detail screen
-    console.log('Pressed media:', media._id);
-  }, []);
+    const index = mediaItems.findIndex(m => m._id === media._id);
+    setSelectedMediaIndex(index >= 0 ? index : 0);
+    setShowMediaViewer(true);
+  }, [mediaItems]);
 
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
@@ -195,6 +199,12 @@ export default function GalleryScreen() {
         visible={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onSuccess={handleRefresh}
+      />
+      <MediaViewer
+        visible={showMediaViewer}
+        mediaFiles={mediaItems}
+        initialIndex={selectedMediaIndex}
+        onClose={() => setShowMediaViewer(false)}
       />
     </SafeAreaView>
   );

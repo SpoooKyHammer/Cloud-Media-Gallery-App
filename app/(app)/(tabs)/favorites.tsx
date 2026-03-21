@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { COLORS, SPACING } from '../../../constants';
 import { MediaCard } from '../../../components/media/MediaCard';
 import { MediaCardSkeleton } from '../../../components/common/Skeleton';
 import { useFavoritesInfinite, useToggleFavorite } from '../../../hooks/useMedia';
+import { MediaViewer } from '../../../components/media/MediaViewer';
 import type { MediaFile, PaginatedResponse } from '../../../types';
 import type { InfiniteData } from '@tanstack/react-query';
 
@@ -33,6 +34,8 @@ const ITEM_WIDTH = (width - SPACING.lg * 2 - ITEM_MARGIN * (NUM_COLUMNS - 1)) / 
  * - Optimized for 100+ items
  */
 export default function FavoritesScreen() {
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useFavoritesInfinite();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -51,11 +54,12 @@ export default function FavoritesScreen() {
     [toggleFavorite]
   );
 
-  // Handle media press (placeholder for navigation)
+  // Handle media press - open full screen viewer
   const handleMediaPress = useCallback((media: MediaFile) => {
-    // TODO: Navigate to media detail screen
-    console.log('Pressed media:', media._id);
-  }, []);
+    const index = mediaItems.findIndex(m => m._id === media._id);
+    setSelectedMediaIndex(index >= 0 ? index : 0);
+    setShowMediaViewer(true);
+  }, [mediaItems]);
 
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
@@ -183,6 +187,12 @@ export default function FavoritesScreen() {
           overScrollMode='never'
         />
       )}
+      <MediaViewer
+        visible={showMediaViewer}
+        mediaFiles={mediaItems}
+        initialIndex={selectedMediaIndex}
+        onClose={() => setShowMediaViewer(false)}
+      />
     </SafeAreaView>
   );
 }
