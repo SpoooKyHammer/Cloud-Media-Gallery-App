@@ -366,7 +366,7 @@ function formatBytes(bytes: number): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundSecondary,
   },
   selectionContainer: {
     flex: 1,
@@ -379,11 +379,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: 16,
     color: COLORS.textSecondary,
+    marginTop: SPACING.sm,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   },
   uploadingContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundSecondary,
   },
   uploadingContent: {
     flex: 1,

@@ -52,6 +52,7 @@ export const MediaPreview = memo(({ assets, onRemove, enablePreview = true }: Me
           numColumns={3}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          overScrollMode='never'
         />
       </View>
 

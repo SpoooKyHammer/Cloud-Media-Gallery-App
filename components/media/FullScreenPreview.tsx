@@ -152,6 +152,7 @@ export const FullScreenPreview = memo(({
             const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
             handleIndexChange(index);
           }}
+          overScrollMode='never'
         />
 
         {/* Pagination */}

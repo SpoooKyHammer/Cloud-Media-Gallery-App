@@ -20,7 +20,7 @@ export default function TabsLayout() {
           paddingBottom: 8,
         },
         headerStyle: {
-          backgroundColor: COLORS.background,
+          backgroundColor: COLORS.backgroundSecondary,
         },
         headerTintColor: COLORS.text,
         headerTitleStyle: {
