@@ -1,12 +1,14 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Text, Dimensions, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING } from '../../constants';
 import type { ImagePickerAsset } from 'expo-image-picker';
+import { FullScreenPreview } from './FullScreenPreview';
 
 export interface MediaPreviewProps {
   assets: ImagePickerAsset[];
   onRemove?: (index: number) => void;
+  enablePreview?: boolean;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -15,23 +17,51 @@ const PREVIEW_SIZE = SCREEN_WIDTH - (SPACING.xl * 2);
 /**
  * Media preview component for showing selected media before upload.
  * Always displays files in a grid layout with remove capability.
+ * Tapping an item opens full-screen preview with zoom/navigation.
  */
-export const MediaPreview = memo(({ assets, onRemove }: MediaPreviewProps) => {
+export const MediaPreview = memo(({ assets, onRemove, enablePreview = true }: MediaPreviewProps) => {
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const handleOpenPreview = useCallback((index: number) => {
+    if (!enablePreview) return;
+    setPreviewIndex(index);
+    setPreviewVisible(true);
+  }, [enablePreview]);
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewVisible(false);
+  }, []);
+
   const renderAsset = ({ item, index }: { item: ImagePickerAsset; index: number }) => (
-    <AssetItem asset={item} index={index} onRemove={onRemove} />
+    <AssetItem 
+      asset={item} 
+      index={index} 
+      onRemove={onRemove}
+      onPress={() => handleOpenPreview(index)}
+    />
   );
 
   return (
-    <View style={styles.multiContainer}>
-      <FlatList
-        data={assets}
-        renderItem={renderAsset}
-        keyExtractor={(item, index) => `asset-${index}-${item.uri}`}
-        numColumns={3}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
+    <>
+      <View style={styles.multiContainer}>
+        <FlatList
+          data={assets}
+          renderItem={renderAsset}
+          keyExtractor={(item, index) => `asset-${index}-${item.uri}`}
+          numColumns={3}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+
+      <FullScreenPreview
+        visible={previewVisible}
+        assets={assets}
+        initialIndex={previewIndex}
+        onClose={handleClosePreview}
       />
-    </View>
+    </>
   );
 });
 
@@ -59,9 +89,10 @@ interface AssetItemProps {
   asset: ImagePickerAsset;
   index: number;
   onRemove?: (index: number) => void;
+  onPress?: () => void;
 }
 
-const AssetItem = ({ asset, index, onRemove }: AssetItemProps) => {
+const AssetItem = ({ asset, index, onRemove, onPress }: AssetItemProps) => {
   const isVideo = asset.type === 'video' || asset.mimeType?.startsWith('video');
   const mediaType = asset.mimeType?.split('/')[0]?.toUpperCase() || 'MEDIA';
   const fileSize = formatFileSize(asset.fileSize || 0);
@@ -70,7 +101,7 @@ const AssetItem = ({ asset, index, onRemove }: AssetItemProps) => {
     : null;
 
   return (
-    <View style={styles.assetItem}>
+    <TouchableOpacity style={styles.assetItem} onPress={onPress} activeOpacity={0.8}>
       <Image 
         source={{ uri: asset.uri }} 
         style={styles.assetImage} 
@@ -109,7 +140,7 @@ const AssetItem = ({ asset, index, onRemove }: AssetItemProps) => {
           </Text>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
