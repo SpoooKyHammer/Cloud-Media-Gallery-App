@@ -1,18 +1,63 @@
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../../constants';
 
 /**
  * Tabs layout for the main app navigation.
+ * Uses Bottom Tabs with icons for Gallery, Favorites, and Profile.
  */
 export default function TabsLayout() {
   return (
-    <>
-      <Stack.Screen
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textTertiary,
+        tabBarStyle: {
+          backgroundColor: COLORS.background,
+          borderTopColor: COLORS.border,
+          paddingTop: 8,
+          paddingBottom: 8,
+        },
+        headerStyle: {
+          backgroundColor: COLORS.background,
+        },
+        headerTintColor: COLORS.text,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="gallery"
         options={{
-          title: 'Home',
-          headerShown: true,
+          title: 'Gallery',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
+          ),
+          headerTitle: 'Gallery',
         }}
       />
-    </>
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favorites',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="heart-outline" size={size} color={color} />
+          ),
+          headerTitle: 'Favorites',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+          headerTitle: 'Profile',
+        }}
+      />
+    </Tabs>
   );
 }
