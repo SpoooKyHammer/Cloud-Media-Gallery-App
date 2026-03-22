@@ -112,6 +112,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               error={errors.password}
               secureTextEntry
+              showPasswordToggle
               autoCapitalize="none"
               editable={!isLoading}
               onSubmitEditing={handleLogin}

@@ -147,6 +147,7 @@ export default function RegisterScreen() {
               onChangeText={setPassword}
               error={errors.password}
               secureTextEntry
+              showPasswordToggle
               autoCapitalize="none"
               editable={!isLoading}
               testID="password-input"
@@ -159,6 +160,7 @@ export default function RegisterScreen() {
               onChangeText={setConfirmPassword}
               error={errors.confirmPassword}
               secureTextEntry
+              showPasswordToggle
               autoCapitalize="none"
               editable={!isLoading}
               onSubmitEditing={handleRegister}

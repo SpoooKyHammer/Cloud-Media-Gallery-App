@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   TextInput,
@@ -9,6 +9,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING } from '../../constants';
 
 export interface InputProps extends TextInputProps {
@@ -17,6 +18,7 @@ export interface InputProps extends TextInputProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   containerStyle?: ViewStyle;
+  showPasswordToggle?: boolean;
 }
 
 /**
@@ -29,8 +31,19 @@ export const Input: React.FC<InputProps> = ({
   rightIcon,
   containerStyle,
   style,
+  showPasswordToggle,
+  secureTextEntry,
   ...props
 }) => {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const isPasswordInput = showPasswordToggle && secureTextEntry;
+  const actualSecureTextEntry = isPasswordInput ? !isPasswordVisible : secureTextEntry;
+
+  const handleTogglePassword = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
+
   const getInputContainerStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
       flexDirection: 'row',
@@ -63,7 +76,7 @@ export const Input: React.FC<InputProps> = ({
     if (leftIcon) {
       baseStyle.marginLeft = SPACING.sm;
     }
-    if (rightIcon) {
+    if (rightIcon || isPasswordInput) {
       baseStyle.marginRight = SPACING.sm;
     }
 
@@ -83,9 +96,23 @@ export const Input: React.FC<InputProps> = ({
         <TextInput
           style={getInputStyle()}
           placeholderTextColor={COLORS.textTertiary}
+          secureTextEntry={actualSecureTextEntry}
           {...props}
         />
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
+        {isPasswordInput && (
+          <TouchableOpacity
+            onPress={handleTogglePassword}
+            style={styles.passwordToggle}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name={isPasswordVisible ? 'eye-off' : 'eye'}
+              size={20}
+              color={COLORS.textTertiary}
+            />
+          </TouchableOpacity>
+        )}
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -106,6 +133,9 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   rightIcon: {
+    marginLeft: SPACING.sm,
+  },
+  passwordToggle: {
     marginLeft: SPACING.sm,
   },
   errorText: {

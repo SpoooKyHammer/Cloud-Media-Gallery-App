@@ -50,10 +50,10 @@ export const Button: React.FC<ButtonProps> = ({
       baseStyle.paddingVertical = SPACING.sm;
       baseStyle.paddingHorizontal = SPACING.md;
     } else if (size === 'medium') {
-      baseStyle.paddingVertical = SPACING.md;
+      baseStyle.paddingVertical = SPACING.sm;
       baseStyle.paddingHorizontal = SPACING.lg;
     } else if (size === 'large') {
-      baseStyle.paddingVertical = SPACING.lg;
+      baseStyle.paddingVertical = SPACING.md;
       baseStyle.paddingHorizontal = SPACING.xl;
     }
 
