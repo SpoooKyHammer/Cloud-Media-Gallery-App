@@ -6,7 +6,7 @@ import { populateCachedPaths } from '../services/cacheService';
 import type { MediaFile, PaginatedResponse } from '../types';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
 
 export interface UploadProgress {
   progress: number;

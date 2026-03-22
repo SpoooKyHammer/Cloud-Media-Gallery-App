@@ -19,7 +19,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.spoookyhammer.cloudmediagallery",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -40,11 +42,25 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "af81df57-d329-4c56-a6f7-64df31b8c9f2"
+      }
     }
   }
 }
