@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSession } from '../hooks/useAuth';
 import { QueryProvider } from '../components/common/QueryProvider';
 import { initializeCacheMemory } from '../services/cacheService';
@@ -31,19 +32,21 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryProvider>
-      <Stack>
-        {/* Auth routes - only accessible when NOT authenticated */}
-        <Stack.Protected guard={!isAuthenticated}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        </Stack.Protected>
+    <SafeAreaProvider>
+      <QueryProvider>
+        <Stack>
+          {/* Auth routes - only accessible when NOT authenticated */}
+          <Stack.Protected guard={!isAuthenticated}>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack.Protected>
 
-        {/* App routes - only accessible when authenticated */}
-        <Stack.Protected guard={isAuthenticated}>
-          <Stack.Screen name="(app)" options={{ headerShown: false }} />
-        </Stack.Protected>
-      </Stack>
-    </QueryProvider>
+          {/* App routes - only accessible when authenticated */}
+          <Stack.Protected guard={isAuthenticated}>
+            <Stack.Screen name="(app)" options={{ headerShown: false }} />
+          </Stack.Protected>
+        </Stack>
+      </QueryProvider>
+    </SafeAreaProvider>
   );
 }
 
