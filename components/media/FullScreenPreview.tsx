@@ -25,12 +25,20 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /**
  * Video slide component with expo-video player.
+ * Only plays when the slide is visible.
  */
-const VideoSlide = ({ asset }: { asset: ImagePickerAsset }) => {
-  const player = useVideoPlayer({ uri: asset.uri }, (player) => {
-    player.play();
-    player.loop = true;
-  });
+const VideoSlide = ({ asset, isPlaying }: { asset: ImagePickerAsset; isPlaying: boolean }) => {
+  const player = useVideoPlayer({ uri: asset.uri });
+
+  // Handle play/pause based on visibility
+  React.useEffect(() => {
+    if (isPlaying) {
+      player.play();
+      player.loop = true;
+    } else {
+      player.pause();
+    }
+  }, [isPlaying, player]);
 
   return (
     <VideoView
@@ -82,11 +90,13 @@ export const FullScreenPreview = memo(({
 
   const renderItem = useCallback(({ item, index }: { item: ImagePickerAsset; index: number }) => {
     const isVideo = item.type === 'video' || item.mimeType?.startsWith('video');
+    // Only play video if this is the current visible slide
+    const isPlaying = index === currentIndex;
 
     return (
       <View style={styles.slide}>
         {isVideo ? (
-          <VideoSlide asset={item} />
+          <VideoSlide asset={item} isPlaying={isPlaying} />
         ) : (
           <ImageSlide asset={item} />
         )}
@@ -98,7 +108,7 @@ export const FullScreenPreview = memo(({
         </View>
       </View>
     );
-  }, [assets.length]);
+  }, [assets.length, currentIndex]);
 
   const renderPagination = useCallback(() => {
     if (assets.length <= 1) return null;

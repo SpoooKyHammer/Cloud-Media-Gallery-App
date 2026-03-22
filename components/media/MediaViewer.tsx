@@ -26,12 +26,20 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 /**
  * Video slide component with expo-video player.
  * Supports both remote URLs and local file:// paths.
+ * Only plays when the slide is visible.
  */
-const VideoSlide = ({ uri }: { uri: string }) => {
-  const player = useVideoPlayer({ uri }, (player) => {
-    player.play();
-    player.loop = true;
-  });
+const VideoSlide = ({ uri, isPlaying }: { uri: string; isPlaying: boolean }) => {
+  const player = useVideoPlayer({ uri });
+
+  // Handle play/pause based on visibility
+  React.useEffect(() => {
+    if (isPlaying) {
+      player.play();
+      player.loop = true;
+    } else {
+      player.pause();
+    }
+  }, [isPlaying, player]);
 
   return (
     <VideoView
@@ -99,11 +107,13 @@ export const MediaViewer = memo(({
     const isVideo = item.media_type === 'video';
     // Use cached URL if available, otherwise fall back to original URL
     const uri = urlMap[item._id] || item.file_url;
+    // Only play video if this is the current visible slide
+    const isPlaying = index === currentIndex;
 
     return (
       <View style={styles.slide}>
         {isVideo ? (
-          <VideoSlide uri={uri} />
+          <VideoSlide uri={uri} isPlaying={isPlaying} />
         ) : (
           <ImageSlide uri={uri} />
         )}
@@ -115,7 +125,7 @@ export const MediaViewer = memo(({
         </View>
       </View>
     );
-  }, [mediaFiles.length, urlMap]);
+  }, [mediaFiles.length, urlMap, currentIndex]);
 
   const renderPagination = useCallback(() => {
     if (mediaFiles.length <= 1) return null;
