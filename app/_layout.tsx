@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSession } from '../hooks/useAuth';
 import { QueryProvider } from '../components/common/QueryProvider';
+import { initializeCacheMemory } from '../services/cacheService';
 import { COLORS } from '../constants';
 
 /**
@@ -15,6 +16,8 @@ export default function RootLayout() {
   useEffect(() => {
     // Initialize auth state from secure storage on app mount
     initialize();
+    // Initialize cache memory for fast sync lookups
+    initializeCacheMemory();
   }, [initialize]);
 
   // Show loading screen while initializing

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useRef } from 'react';
+import React, { memo, useCallback, useRef, useState, useEffect } from 'react';
 import {
   View,
   Modal,
@@ -25,6 +25,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /**
  * Video slide component with expo-video player.
+ * Supports both remote URLs and local file:// paths.
  */
 const VideoSlide = ({ uri }: { uri: string }) => {
   const player = useVideoPlayer({ uri }, (player) => {
@@ -43,6 +44,7 @@ const VideoSlide = ({ uri }: { uri: string }) => {
 
 /**
  * Image slide component with expo-image.
+ * Supports both remote URLs and local file:// paths.
  */
 const ImageSlide = ({ uri }: { uri: string }) => (
   <Image
@@ -55,6 +57,7 @@ const ImageSlide = ({ uri }: { uri: string }) => (
 /**
  * Full-screen media viewer with zoom/pan gestures and navigation.
  * Supports images and videos with swipe navigation between items.
+ * Uses pre-resolved cached_path from media objects for offline viewing.
  */
 export const MediaViewer = memo(({
   visible,
@@ -65,10 +68,22 @@ export const MediaViewer = memo(({
   const [currentIndex, setCurrentIndex] = React.useState(initialIndex);
   const flatListRef = React.useRef<FlatList<MediaFile>>(null);
 
+  // Build URL map from pre-resolved cached_path (sync, no async lookup needed)
+  const urlMap = React.useMemo(() => {
+    const urls: Record<string, string> = {};
+    for (const media of mediaFiles) {
+      urls[media._id] = media.cached_path || media.file_url;
+    }
+    return urls;
+  }, [mediaFiles]);
+
   React.useEffect(() => {
-    if (visible && initialIndex !== currentIndex) {
+    if (visible) {
       setCurrentIndex(initialIndex);
-      flatListRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+      // Small delay to ensure FlatList is ready
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+      }, 0);
     }
   }, [visible, initialIndex]);
 
@@ -82,13 +97,15 @@ export const MediaViewer = memo(({
 
   const renderItem = useCallback(({ item, index }: { item: MediaFile; index: number }) => {
     const isVideo = item.media_type === 'video';
+    // Use cached URL if available, otherwise fall back to original URL
+    const uri = urlMap[item._id] || item.file_url;
 
     return (
       <View style={styles.slide}>
         {isVideo ? (
-          <VideoSlide uri={item.file_url} />
+          <VideoSlide uri={uri} />
         ) : (
-          <ImageSlide uri={item.file_url} />
+          <ImageSlide uri={uri} />
         )}
 
         <View style={styles.counter}>
@@ -98,7 +115,7 @@ export const MediaViewer = memo(({
         </View>
       </View>
     );
-  }, [mediaFiles.length]);
+  }, [mediaFiles.length, urlMap]);
 
   const renderPagination = useCallback(() => {
     if (mediaFiles.length <= 1) return null;

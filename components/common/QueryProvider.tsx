@@ -1,5 +1,14 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Create async storage persister for persisting queries
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'cloud-media-gallery-query-client',
+});
 
 // Create a client with default options
 const queryClient = new QueryClient({
@@ -22,10 +31,29 @@ const queryClient = new QueryClient({
 
 /**
  * QueryClientProvider wrapper for React Query.
- * Provides the QueryClient to the entire app.
+ * Provides the QueryClient to the entire app with persistence.
+ * Persists media and favorites queries to AsyncStorage for offline support.
  */
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: asyncStoragePersister,
+        dehydrateOptions: {
+          // Only persist media and favorites queries
+          shouldDehydrateQuery: (query) => {
+            const queryKey = query.queryKey[0] as string;
+            return queryKey === 'media' || queryKey === 'favorites';
+          },
+        },
+      }}
+      onSuccess={() => {
+        // Query cache restored successfully
+        console.log('Query cache restored from persistence');
+      }}
+    >
+      {children}
+    </PersistQueryClientProvider>
   );
 }

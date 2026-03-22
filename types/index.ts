@@ -47,6 +47,11 @@ export interface MediaFile {
   is_favorite: boolean;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Local cached file path (file:// URI).
+   * Populated when media is cached for offline viewing.
+   */
+  cached_path?: string;
 }
 
 // Auth input types

@@ -1,5 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
 import { mediaService } from '../services/mediaService';
+import { populateCachedPaths } from '../services/cacheService';
 import type { MediaFile, PaginatedResponse } from '../types';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
@@ -12,7 +14,21 @@ export interface UploadProgress {
 }
 
 /**
+ * Check if device is currently online.
+ */
+async function checkOnline(): Promise<boolean> {
+  try {
+    const state = await NetInfo.fetch();
+    return state.isConnected === true && state.isInternetReachable !== false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hook for fetching media with infinite scroll pagination.
+ * When offline, uses cached data only without attempting to refetch.
+ * Automatically populates cached_path on media items for offline support.
  */
 export const useMediaInfinite = () => {
   return useInfiniteQuery<
@@ -24,6 +40,10 @@ export const useMediaInfinite = () => {
   >({
     queryKey: ['media'],
     queryFn: async ({ pageParam = 1 }) => {
+      const isOnline = await checkOnline();
+      if (!isOnline) {
+        throw new Error('Network error: Device is offline');
+      }
       return await mediaService.getMedia({ page: pageParam, limit: PAGE_SIZE });
     },
     initialPageParam: 1,
@@ -31,11 +51,28 @@ export const useMediaInfinite = () => {
       const { page, totalPages } = lastPage.pagination;
       return page < totalPages ? page + 1 : undefined;
     },
+    // Don't retry when offline
+    retry: (failureCount, error) => {
+      if (error.message?.includes('offline') || error.message?.includes('Network')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    // Populate cached_path on media items for fast offline access
+    select: (data) => ({
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        data: populateCachedPaths(page.data),
+      })),
+    }),
   });
 };
 
 /**
  * Hook for fetching favorites with infinite scroll pagination.
+ * When offline, uses cached data only without attempting to refetch.
+ * Automatically populates cached_path on media items for offline support.
  */
 export const useFavoritesInfinite = () => {
   return useInfiniteQuery<
@@ -47,6 +84,10 @@ export const useFavoritesInfinite = () => {
   >({
     queryKey: ['favorites'],
     queryFn: async ({ pageParam = 1 }) => {
+      const isOnline = await checkOnline();
+      if (!isOnline) {
+        throw new Error('Network error: Device is offline');
+      }
       return await mediaService.getFavorites({ page: pageParam, limit: PAGE_SIZE });
     },
     initialPageParam: 1,
@@ -54,6 +95,21 @@ export const useFavoritesInfinite = () => {
       const { page, totalPages } = lastPage.pagination;
       return page < totalPages ? page + 1 : undefined;
     },
+    // Don't retry when offline
+    retry: (failureCount, error) => {
+      if (error.message?.includes('offline') || error.message?.includes('Network')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    // Populate cached_path on media items for fast offline access
+    select: (data) => ({
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        data: populateCachedPaths(page.data),
+      })),
+    }),
   });
 };
 

@@ -1,11 +1,10 @@
 import React, { useCallback, memo, useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ImageSource } from 'expo-image';
+import { Image, type ImageSource } from 'expo-image';
 import { COLORS, SPACING } from '../../constants';
 import type { MediaFile } from '../../types';
 import { getVideoThumbnailSource } from '../../utils/getVideoThumbnail';
-import { Image } from 'expo-image';
 
 export interface MediaCardProps {
   media: MediaFile;
@@ -17,6 +16,8 @@ export interface MediaCardProps {
 /**
  * Media card component displaying a media thumbnail with favorite toggle.
  * Uses memo to prevent unnecessary re-renders.
+ * Supports offline viewing with cached media.
+ * Uses pre-resolved cached_path from parent for instant rendering.
  */
 export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: MediaCardProps) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -25,25 +26,36 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
 
   const isVideo = media.media_type === 'video';
 
-  // Generate thumbnail for videos
+  // Use cached_path if available, otherwise use remote URL
+  // cached_path is pre-populated by the hook for instant rendering
+  const sourceUrl = media.cached_path || media.file_url;
+
+  // Generate thumbnail for videos (only for remote URLs)
   useEffect(() => {
     if (!isVideo) {
-      setThumbnailSource(media.file_url);
+      setThumbnailSource(sourceUrl);
       return;
     }
 
+    // Local file:// URLs work directly with expo-image - no thumbnail generation needed
+    if (sourceUrl.startsWith('file://')) {
+      setThumbnailSource(sourceUrl);
+      return;
+    }
+
+    // Remote URL - generate thumbnail
     let mounted = true;
 
     const loadThumbnail = async () => {
       try {
-        const thumbnail = await getVideoThumbnailSource(media.file_url);
+        const thumbnail = await getVideoThumbnailSource(sourceUrl);
         if (mounted) {
-          setThumbnailSource(thumbnail || media.file_url);
+          setThumbnailSource(thumbnail || sourceUrl);
         }
       } catch (error) {
         console.warn('Thumbnail generation failed:', error);
         if (mounted) {
-          setThumbnailSource(media.file_url);
+          setThumbnailSource(sourceUrl);
         }
       }
     };
@@ -53,7 +65,7 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
     return () => {
       mounted = false;
     };
-  }, [isVideo, media.file_url]);
+  }, [isVideo, sourceUrl]);
 
   const handlePress = useCallback(() => {
     onPress?.(media);
@@ -77,7 +89,7 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
           <Image
             source={typeof thumbnailSource === 'string' ? { uri: thumbnailSource } : thumbnailSource as any}
             style={styles.image}
-            resizeMode="cover"
+            contentFit='cover'
             onLoadStart={() => {
               setIsLoading(true);
               setHasError(false);
@@ -87,6 +99,7 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
               setIsLoading(false);
               setHasError(true);
             }}
+            cachePolicy="none"
           />
         )}
         {isVideo && (

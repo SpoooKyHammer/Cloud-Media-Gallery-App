@@ -3,12 +3,40 @@ import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/authService';
 import { initAuthInterceptor } from '../api/client';
 import type { User, AuthTokens } from '../types';
+import NetInfo from '@react-native-community/netinfo';
 
 // Secure storage keys
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'auth_access_token',
   REFRESH_TOKEN: 'auth_refresh_token',
+  USER_DATA: 'auth_user_data',
 };
+
+/**
+ * Check if error is a network error (not an auth error).
+ */
+function isNetworkError(error: unknown): boolean {
+  // Check for network-related error messages
+  const errorMessage = (error as Error)?.message?.toLowerCase() || '';
+  return (
+    errorMessage.includes('network') ||
+    errorMessage.includes('network error') ||
+    errorMessage.includes('timeout') ||
+    errorMessage.includes('failed to fetch')
+  );
+}
+
+/**
+ * Check if device is currently online.
+ */
+async function checkOnline(): Promise<boolean> {
+  try {
+    const state = await NetInfo.fetch();
+    return state.isConnected === true && state.isInternetReachable !== false;
+  } catch {
+    return false;
+  }
+}
 
 interface AuthState {
   // State
@@ -27,6 +55,7 @@ interface AuthState {
   refreshToken: () => Promise<void>;
   clearAuth: () => Promise<void>;
   persistTokens: (tokens: AuthTokens) => Promise<void>;
+  persistUserData: (user: User) => Promise<void>;
   setUser: (user: User) => void;
 }
 
@@ -46,13 +75,15 @@ export const authStore = create<AuthState>((set, get) => ({
 
   /**
    * Initialize auth state from secure storage on app start.
-   * Loads tokens and fetches fresh user data from API.
+   * Loads tokens and user data from secure storage.
+   * When offline, keeps auth state with tokens but marks user as offline.
    */
   initialize: async () => {
     try {
-      const [accessToken, refreshToken] = await Promise.all([
+      const [accessToken, refreshToken, userData] = await Promise.all([
         SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
         SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
+        SecureStore.getItemAsync(STORAGE_KEYS.USER_DATA),
       ]);
 
       if (accessToken && refreshToken) {
@@ -61,17 +92,52 @@ export const authStore = create<AuthState>((set, get) => ({
           refreshTokenValue: refreshToken,
         });
 
-        // Fetch fresh user data from API
-        try {
-          const user = await authService.getMe();
+        // Load user data from secure storage if available
+        if (userData) {
+          try {
+            const parsedUser = JSON.parse(userData) as User;
+            set({
+              user: parsedUser,
+              isAuthenticated: true,
+            });
+            console.log('Loaded user data from secure storage');
+          } catch (error) {
+            console.warn('Failed to parse stored user data:', error);
+          }
+        }
+
+        // Check if online before fetching user data
+        const isOnline = await checkOnline();
+
+        if (isOnline) {
+          // Fetch fresh user data from API
+          try {
+            const user = await authService.getMe();
+            set({
+              user,
+              isAuthenticated: true,
+            });
+            // Update stored user data
+            await get().persistUserData(user);
+          } catch (error) {
+            // Only clear auth if it's an actual auth error (401), not network error
+            if (!isNetworkError(error)) {
+              console.error('Auth tokens invalid, clearing auth:', error);
+              await get().clearAuth();
+            } else {
+              // Network error - keep auth state, user can access cached data
+              console.warn('Network error during auth init, keeping cached auth state');
+              set({
+                isAuthenticated: true,
+              });
+            }
+          }
+        } else {
+          // Offline - keep auth state with tokens, user can access cached data
+          console.log('Offline during auth init, keeping cached auth state');
           set({
-            user,
             isAuthenticated: true,
           });
-        } catch (error) {
-          // getMe failed (tokens invalid), clear auth
-          console.error('Failed to fetch user data, clearing auth:', error);
-          await get().clearAuth();
         }
       }
     } catch (error) {
@@ -161,9 +227,21 @@ export const authStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Set user in state.
+   * Persist user data to secure storage.
+   */
+  persistUserData: async (user: User) => {
+    try {
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+    } catch (error) {
+      console.error('Failed to persist user data:', error);
+    }
+  },
+
+  /**
+   * Set user in state and persist to secure storage.
    */
   setUser: (user: User) => {
+    get().persistUserData(user);
     set({ user, isAuthenticated: true });
   },
 
@@ -174,6 +252,7 @@ export const authStore = create<AuthState>((set, get) => ({
     await Promise.all([
       SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
       SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA),
     ]);
 
     set({

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { MediaCardSkeleton } from '../../../components/common/Skeleton';
 import { useMediaInfinite, useToggleFavorite } from '../../../hooks/useMedia';
 import { UploadModal } from '../../../components/media/UploadModal';
 import { MediaViewer } from '../../../components/media/MediaViewer';
-import type { MediaFile, PaginatedResponse } from '../../../types';
-import type { InfiniteData } from '@tanstack/react-query';
+import { OfflineBanner } from '../../../components/common/OfflineBanner';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { downloadAndCache } from '../../../services/cacheService';
+import type { MediaFile } from '../../../types';
 
 const { width } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
@@ -32,21 +34,40 @@ const ITEM_WIDTH = (width - SPACING.lg * 2 - ITEM_MARGIN * (NUM_COLUMNS - 1)) / 
  * - Skeleton loading state
  * - Empty state
  * - Error state
+ * - Offline support with cached media
  * - Optimized for 100+ items
  */
 export default function GalleryScreen() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useMediaInfinite();
   const { mutate: toggleFavorite } = useToggleFavorite();
+  const { isOnline } = useNetworkStatus();
 
   // Flatten all pages into a single array
   const mediaItems = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap((page) => page.data);
   }, [data]);
+
+  // Background caching: Download media files for offline viewing
+  useEffect(() => {
+    if (!isOnline || mediaItems.length === 0) return;
+
+    // Cache all visible items that aren't cached yet
+    mediaItems.forEach((media) => {
+      if (!media.cached_path) {
+        downloadAndCache(
+          media._id,
+          media.media_type === 'video' ? 'video' : 'image',
+          media.file_url
+        ).catch(console.warn);
+      }
+    });
+  }, [isOnline, mediaItems.length]);
 
   // Handle favorite toggle
   const handleFavoritePress = useCallback(
@@ -111,10 +132,12 @@ export default function GalleryScreen() {
     );
   }, [isFetchingNextPage]);
 
-  // Render empty state
+  // Render empty state - only show when NOT loading and NOT error and NO items
   const renderEmpty = useMemo(() => {
     if (isLoading) return null;
-    if (isError) return null;
+    // Don't show empty state when offline with cached data
+    if (!isOnline && mediaItems.length > 0) return null;
+    if (isError && mediaItems.length === 0) return null;
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="images-outline" size={64} color={COLORS.textTertiary} />
@@ -124,11 +147,13 @@ export default function GalleryScreen() {
         </Text>
       </View>
     );
-  }, [isLoading, isError]);
+  }, [isLoading, isError, isOnline, mediaItems.length]);
 
-  // Render error state
+  // Render error state - only show when NO cached data available
   const renderError = useMemo(() => {
     if (!isError) return null;
+    // Don't show error when we have cached data (offline mode)
+    if (mediaItems.length > 0) return null;
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="cloud-offline-outline" size={64} color={COLORS.textTertiary} />
@@ -140,7 +165,7 @@ export default function GalleryScreen() {
         </TouchableOpacity>
       </View>
     );
-  }, [isError, handleRefresh]);
+  }, [isError, mediaItems.length, handleRefresh]);
 
   // Render loading skeleton
   const renderLoading = useMemo(() => {
@@ -158,6 +183,10 @@ export default function GalleryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <OfflineBanner
+        visible={!isOnline && !bannerDismissed}
+        onDismiss={() => setBannerDismissed(true)}
+      />
       {isLoading ? (
         renderLoading
       ) : (
@@ -189,12 +218,18 @@ export default function GalleryScreen() {
         />
       )}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, !isOnline && styles.fabDisabled]}
         onPress={() => setShowUploadModal(true)}
         activeOpacity={0.8}
+        disabled={!isOnline}
       >
         <Ionicons name="add" size={32} color={COLORS.textInverse} />
       </TouchableOpacity>
+      {!isOnline && (
+        <View style={styles.fabTooltip}>
+          <Text style={styles.fabTooltipText}>Upload requires connection</Text>
+        </View>
+      )}
       <UploadModal
         visible={showUploadModal}
         onClose={() => setShowUploadModal(false)}
@@ -209,6 +244,8 @@ export default function GalleryScreen() {
     </SafeAreaView>
   );
 }
+
+GalleryScreen.displayName = 'GalleryScreen';
 
 const styles = StyleSheet.create({
   container: {
@@ -298,5 +335,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  fabDisabled: {
+    backgroundColor: COLORS.textTertiary,
+    opacity: 0.5,
+  },
+  fabTooltip: {
+    position: 'absolute',
+    bottom: SPACING.xl + 70,
+    right: SPACING.lg,
+    backgroundColor: COLORS.backgroundTertiary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  fabTooltipText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
 });
