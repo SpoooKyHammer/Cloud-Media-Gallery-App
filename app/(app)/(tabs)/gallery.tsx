@@ -42,10 +42,10 @@ export default function GalleryScreen() {
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
+  const { data, isLoading, isPending, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useMediaInfinite();
   const { toggleFavorite, pendingMediaId } = useToggleFavorite();
-  const { isOnline } = useNetworkStatus();
+  const { isOnline, isLoading: isNetworkLoading } = useNetworkStatus();
 
   // Flatten all pages into a single array
   const mediaItems = useMemo(() => {
@@ -135,10 +135,11 @@ export default function GalleryScreen() {
 
   // Render empty state - only show when NOT loading and NOT error and NO items
   const renderEmpty = useMemo(() => {
-    if (isLoading) return null;
     // Don't show empty state when offline with cached data
     if (!isOnline && mediaItems.length > 0) return null;
     if (isError && mediaItems.length === 0) return null;
+    // Don't show empty state while initially loading
+    if (isPending) return null;
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="images-outline" size={64} color={COLORS.textTertiary} />
@@ -148,7 +149,7 @@ export default function GalleryScreen() {
         </Text>
       </View>
     );
-  }, [isLoading, isError, isOnline, mediaItems.length]);
+  }, [isError, isPending, isOnline, mediaItems.length]);
 
   // Render error state - only show when NO cached data available
   const renderError = useMemo(() => {
@@ -184,11 +185,13 @@ export default function GalleryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Offline banner - only show after network check completes and when we have cached data */}
       <OfflineBanner
-        visible={!isOnline && !bannerDismissed}
+        visible={!isNetworkLoading && !isOnline && !bannerDismissed && mediaItems.length > 0}
         onDismiss={() => setBannerDismissed(true)}
       />
-      {isLoading ? (
+      {/* Initial loading skeleton - show only on very first load */}
+      {isPending ? (
         renderLoading
       ) : (
         <FlatList
