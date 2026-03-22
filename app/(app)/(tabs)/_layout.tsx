@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../../constants';
 
 /**
@@ -8,6 +9,8 @@ import { COLORS } from '../../../constants';
  * Uses Bottom Tabs with icons for Gallery, Favorites, and Profile.
  */
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -17,7 +20,8 @@ export default function TabsLayout() {
           backgroundColor: COLORS.background,
           borderTopColor: COLORS.border,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: Math.max(16, insets.bottom),
+          height: 64 + Math.max(insets.bottom, 16)
         },
         headerStyle: {
           backgroundColor: COLORS.backgroundSecondary,

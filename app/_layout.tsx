@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSession } from '../hooks/useAuth';
 import { QueryProvider } from '../components/common/QueryProvider';
@@ -33,6 +34,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      {/* Status bar with automatic light/dark mode */}
+      <StatusBar style="auto" backgroundColor="transparent" translucent />
       <QueryProvider>
         <Stack>
           {/* Auth routes - only accessible when NOT authenticated */}
