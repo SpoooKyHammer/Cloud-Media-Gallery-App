@@ -63,11 +63,30 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   } = useUploadMedia();
 
   // Sync selectedMedia from hook to our local array
+  // When selectedMedia changes and we have no local assets, copy it
+  // Also handles the case where modal reopens after a successful upload
   React.useEffect(() => {
     if (selectedMedia && selectedAssets.length === 0) {
       setSelectedAssets([selectedMedia]);
     }
-  }, [selectedMedia]);
+  }, [selectedMedia, selectedAssets.length]);
+
+  // Reset local state when modal becomes visible
+  // This ensures stale assets from previous upload don't persist
+  React.useEffect(() => {
+    if (visible) {
+      // Modal just opened - ensure we start fresh
+      if (!selectedMedia) {
+        setSelectedAssets([]);
+        setUploadStage('select');
+      }
+    } else {
+      // Modal just closed - clear everything
+      clearSelection();
+      setSelectedAssets([]);
+      setUploadStage('select');
+    }
+  }, [visible, selectedMedia, clearSelection]);
 
   /**
    * Handle requesting permissions.
