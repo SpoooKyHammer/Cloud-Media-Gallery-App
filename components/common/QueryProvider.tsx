@@ -11,7 +11,7 @@ const asyncStoragePersister = createAsyncStoragePersister({
 });
 
 // Create a client with default options
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Infinite query retry behavior
@@ -28,6 +28,20 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Clear the persisted query cache from AsyncStorage.
+ * Call this on logout to prevent old data from being restored.
+ */
+export async function clearQueryCache(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem('cloud-media-gallery-query-client');
+    queryClient.clear();
+    console.log('Query cache cleared successfully');
+  } catch (error) {
+    console.warn('Failed to clear query cache:', error);
+  }
+}
 
 /**
  * QueryClientProvider wrapper for React Query.

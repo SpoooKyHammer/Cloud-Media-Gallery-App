@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/authService';
 import { initAuthInterceptor } from '../api/client';
+import { clearCache, clearCacheMemory } from '../services/cacheService';
+import { clearQueryCache } from '../components/common/QueryProvider';
 import type { User, AuthTokens } from '../types';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -249,11 +251,17 @@ export const authStore = create<AuthState>((set, get) => ({
    * Clear all authentication data from state and storage.
    */
   clearAuth: async () => {
+    // Clear auth tokens and user data from secure storage
     await Promise.all([
       SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
       SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
       SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA),
     ]);
+
+    // Clear all caches
+    await clearCache();        // Clear media file cache
+    clearCacheMemory();        // Clear in-memory cache map
+    await clearQueryCache();   // Clear React Query cache (NEW!)
 
     set({
       user: null,
