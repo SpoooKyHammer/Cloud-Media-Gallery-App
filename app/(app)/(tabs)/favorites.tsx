@@ -42,7 +42,7 @@ export default function FavoritesScreen() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useFavoritesInfinite();
-  const { mutate: toggleFavorite } = useToggleFavorite();
+  const { toggleFavorite, pendingMediaId } = useToggleFavorite();
   const { isOnline } = useNetworkStatus();
 
   // Flatten all pages into a single array
@@ -107,10 +107,11 @@ export default function FavoritesScreen() {
             onPress={handleMediaPress}
             onFavoritePress={handleFavoritePress}
             isFavorite
+            isPending={pendingMediaId === item._id}
           />
         </View>
       ),
-    [handleMediaPress, handleFavoritePress]
+    [handleMediaPress, handleFavoritePress, pendingMediaId]
   );
 
   // Render footer loader for infinite scroll

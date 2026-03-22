@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import { useState } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { mediaService } from '../services/mediaService';
 import { populateCachedPaths } from '../services/cacheService';
@@ -167,20 +168,32 @@ export const useUploadMedia = () => {
 
 /**
  * Hook for toggling favorite status.
+ * Returns mutation function and loading state.
  */
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
+  const [pendingMediaId, setPendingMediaId] = useState<string | null>(null);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (mediaId: string) => {
+      setPendingMediaId(mediaId);
       return await mediaService.toggleFavorite(mediaId);
     },
     onSuccess: (updatedMedia) => {
+      setPendingMediaId(null);
       // Update both media and favorites queries
       queryClient.invalidateQueries({ queryKey: ['media'] });
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
+    onError: () => {
+      setPendingMediaId(null);
+    },
   });
+
+  return {
+    toggleFavorite: mutation.mutate,
+    pendingMediaId: mutation.isPending ? pendingMediaId : null,
+  };
 };
 
 /**

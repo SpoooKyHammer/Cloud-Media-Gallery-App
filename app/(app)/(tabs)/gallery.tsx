@@ -44,7 +44,7 @@ export default function GalleryScreen() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useMediaInfinite();
-  const { mutate: toggleFavorite } = useToggleFavorite();
+  const { toggleFavorite, pendingMediaId } = useToggleFavorite();
   const { isOnline } = useNetworkStatus();
 
   // Flatten all pages into a single array
@@ -108,10 +108,11 @@ export default function GalleryScreen() {
             media={item}
             onPress={handleMediaPress}
             onFavoritePress={handleFavoritePress}
+            isPending={pendingMediaId === item._id}
           />
         </View>
       ),
-    [handleMediaPress, handleFavoritePress]
+    [handleMediaPress, handleFavoritePress, pendingMediaId]
   );
 
   // Render footer loader for infinite scroll
@@ -217,24 +218,23 @@ export default function GalleryScreen() {
           overScrollMode='never'
         />
       )}
-      <TouchableOpacity
-        style={[styles.fab, !isOnline && styles.fabDisabled]}
-        onPress={() => setShowUploadModal(true)}
-        activeOpacity={0.8}
-        disabled={!isOnline}
-      >
-        <Ionicons name="add" size={32} color={COLORS.textInverse} />
-      </TouchableOpacity>
-      {!isOnline && (
-        <View style={styles.fabTooltip}>
-          <Text style={styles.fabTooltipText}>Upload requires connection</Text>
-        </View>
+      {/* Upload FAB - only show when online */}
+      {isOnline && (
+        <>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setShowUploadModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={32} color={COLORS.textInverse} />
+          </TouchableOpacity>
+          <UploadModal
+            visible={showUploadModal}
+            onClose={() => setShowUploadModal(false)}
+            onSuccess={handleRefresh}
+          />
+        </>
       )}
-      <UploadModal
-        visible={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onSuccess={handleRefresh}
-      />
       <MediaViewer
         visible={showMediaViewer}
         mediaFiles={mediaItems}

@@ -5,12 +5,14 @@ import { Image, type ImageSource } from 'expo-image';
 import { COLORS, SPACING } from '../../constants';
 import type { MediaFile } from '../../types';
 import { getVideoThumbnailSource } from '../../utils/getVideoThumbnail';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 export interface MediaCardProps {
   media: MediaFile;
   onPress?: (media: MediaFile) => void;
   onFavoritePress?: (media: MediaFile) => void;
   isFavorite?: boolean;
+  isPending?: boolean;
 }
 
 /**
@@ -19,10 +21,11 @@ export interface MediaCardProps {
  * Supports offline viewing with cached media.
  * Uses pre-resolved cached_path from parent for instant rendering.
  */
-export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: MediaCardProps) => {
+export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite, isPending }: MediaCardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [thumbnailSource, setThumbnailSource] = useState<string | ImageSource | null>(null);
+  const { isOnline } = useNetworkStatus();
 
   const isVideo = media.media_type === 'video';
 
@@ -107,13 +110,25 @@ export const MediaCard = memo(({ media, onPress, onFavoritePress, isFavorite }: 
             <Ionicons name="videocam" size={16} color={COLORS.textInverse} />
           </View>
         )}
-        <TouchableOpacity style={styles.favoriteButton} onPress={handleFavoritePress} activeOpacity={0.7}>
-          <Ionicons
-            name={isFavorite ?? media.is_favorite ? 'heart' : 'heart-outline'}
-            size={20}
-            color={isFavorite ?? media.is_favorite ? COLORS.error : COLORS.textInverse}
-          />
-        </TouchableOpacity>
+        {/* Favorite button - hide when offline AND not favorited */}
+        {(isOnline || (isFavorite ?? media.is_favorite)) && (
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={handleFavoritePress}
+            activeOpacity={0.7}
+            disabled={!isOnline || isPending}
+          >
+            {isPending ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Ionicons
+                name={isFavorite ?? media.is_favorite ? 'heart' : 'heart-outline'}
+                size={20}
+                color={isFavorite ?? media.is_favorite ? COLORS.error : COLORS.textInverse}
+              />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -156,7 +171,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: SPACING.xs,
     right: SPACING.xs,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 20,
     padding: 4,
     shadowColor: '#000',
